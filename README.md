@@ -1,22 +1,8 @@
-# Rust Libs
+# reflector-rs
 
-Set of libraries that I maintain on [crates.io](https://crates.io/users/ignisda).
+reflector-rs is a Rust implementation of the [Reflector][reflector]
+script for retrieving up-to-date Arch Linux mirror data from the [Mirror
+Status][mirror-status] web interface.
 
-**NOTE**: All the CLI tools are released to Github and can be downloaded from
-[here](https://github.com/IgnisDa/rust-libs/releases).
-
-## Packages
-
-- [avatars](crates/avatars): A library to generate pixel art avatars for users.
-- [avatars_cli](crates/avatars_cli): A CLI tool to generate avatars using the `avatars`
-  crate.
-- [connection-string-parser](crates/connection-string-parser): A library to parse
-  connection strings.
-- [arch-mirrors-rs](crates/arch-mirrors-rs): A rusty way to get data about the 
-  Arch Linux mirrors.
-- [arch-reflector](crates/arch-reflector): A rust implementation of the 
-  [reflector](https://wiki.archlinux.org/title/reflector) utility.
-
-## License
-
-MIT © [IgnisDa](https://github.com/ignisda)
+[reflector]: https://xyne.dev/projects/reflector/
+[mirror-status]: https://www.archlinux.org/mirrors/status/

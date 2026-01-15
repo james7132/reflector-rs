@@ -1,10 +1,10 @@
 [package]
 name = "arch-reflector"
 version = "0.1.5"
-description = "A rust implementation of the arch linux reflector package"
+description = "A Rust implementation of the arch linux reflector package"
 edition = "2021"
-authors = ["IgnisDa <ignisda2001@gmail.com>"]
-repository = "https://github.com/IgnisDa/rust-libs"
+authors = ["IgnisDa <ignisda2001@gmail.com>", "James Liu <contact@no-bull.sh>"]
+repository = "https://github.com/james7132/reflector-rs"
 license = "MIT"
 readme = "README.md"
 
