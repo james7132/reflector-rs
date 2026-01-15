@@ -29,7 +29,7 @@ pub async fn list_countries(url: &str) {
 
     for (country, count) in sorted {
         table.add_row(vec![
-            Cell::new(country.kind.to_string()),
+            Cell::new(country.country.to_string()),
             Cell::new(country.code.to_string()),
             Cell::new(count.to_string()).set_alignment(CellAlignment::Right),
         ]);

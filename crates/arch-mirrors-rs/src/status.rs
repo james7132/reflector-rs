@@ -1,17 +1,6 @@
 //! This is where the [`Status`] struct and all of its direct dependencies go.
 use serde::{Deserialize, Serialize};
 
-/// Raw, typed form of the JSON output given by performing a GET request on [`Status::URL`](Status::URL).
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) struct Raw {
-    cutoff: u32,
-    last_check: String,
-    num_checks: u32,
-    check_frequency: u32,
-    urls: Vec<crate::url::Raw>,
-    version: u32,
-}
-
 /// The status of all the Arch Linux mirrors.
 #[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Deserialize)]
 pub struct Status {
@@ -28,7 +17,7 @@ pub struct Status {
     pub check_frequency: u32,
 
     /// Every known Arch Linux mirror.
-    pub urls: Vec<crate::Url>,
+    pub urls: Vec<crate::Mirror>,
 
     /// The version of the status.
     pub version: u32,
@@ -36,40 +25,17 @@ pub struct Status {
 
 impl Status {
     /// The URL where the JSON is found from.
-    pub const URL: &'static str = "https://archlinux.org/mirrors/status/json";
+    pub const DEFAULT_URL: &'static str = "https://archlinux.org/mirrors/status/json";
 
     /// Get the status from [`Status::URL`](Self::URL).
     pub async fn get_from_default_url() -> reqwest::Result<Self> {
-        Self::get_from_url(Self::URL).await
+        Self::get_from_url(Self::DEFAULT_URL).await
     }
 
     /// Get the status from a given url.
     pub async fn get_from_url(url: &str) -> reqwest::Result<Self> {
         let response = reqwest::get(url).await?;
-        let raw: Raw = response
-            .json()
-            .await
-            .expect("failed to parse response to json");
-
-        Ok(Self::from(raw))
-    }
-}
-
-impl From<Raw> for Status {
-    fn from(raw: Raw) -> Self {
-        let last_check: chrono::DateTime<chrono::Utc> = raw
-            .last_check
-            .parse()
-            .expect("failed to parse last_check field from raw status");
-        let urls: Vec<crate::Url> = raw.urls.into_iter().map(crate::Url::from).collect();
-
-        Self {
-            cutoff: raw.cutoff,
-            last_check,
-            num_checks: raw.num_checks,
-            check_frequency: raw.check_frequency,
-            urls,
-            version: raw.version,
-        }
+        let value = response.json().await;
+        Ok(value?)
     }
 }

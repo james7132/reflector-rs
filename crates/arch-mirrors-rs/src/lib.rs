@@ -3,13 +3,11 @@
 #![warn(missing_docs)]
 #![warn(rustdoc::missing_crate_level_docs)]
 #![warn(rustdoc::invalid_codeblock_attributes)]
-pub mod country;
+pub mod mirror;
 pub mod protocol;
 pub mod status;
-pub mod url;
 
-pub use crate::url::Url;
-pub use country::Country;
+pub use crate::mirror::Mirror;
 pub use protocol::Protocol;
 pub use status::Status;
 

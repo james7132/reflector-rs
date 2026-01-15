@@ -1,7 +1,7 @@
 use anyhow::Result;
-use arch_mirrors_rs::{Country, Status, Url};
+use arch_mirrors_rs::{Mirror, Status};
 use directories::BaseDirs;
-use hashbag::HashBag;
+use std::collections::HashMap;
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
@@ -48,13 +48,25 @@ pub async fn get_mirror_status(
     }
 }
 
-pub async fn count_countries(urls: &[Url]) -> HashBag<&Country> {
-    let mut counts = HashBag::new();
-    for url in urls.iter() {
-        if url.country == Country::WORLDWIDE {
+#[derive(PartialEq, Eq, Hash)]
+pub struct Country<'a> {
+    pub country: &'a str,
+    pub code: &'a str,
+}
+
+pub async fn count_countries(mirrors: &[Mirror]) -> HashMap<Country<'_>, usize> {
+    let mut counts = HashMap::new();
+    for mirror in mirrors.iter() {
+        if mirror.country_code.is_empty() {
             continue;
         }
-        counts.insert(&url.country);
+        counts
+            .entry(Country {
+                country: mirror.country.as_ref(),
+                code: mirror.country_code.as_ref(),
+            })
+            .and_modify(|e| *e += 1)
+            .or_insert(1);
     }
     counts
 }
