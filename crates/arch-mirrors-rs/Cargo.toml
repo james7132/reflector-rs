@@ -13,7 +13,7 @@ keywords = ["arch-linux", "linux", "mirrors", "mirror", "mirrorlist"]
 [dependencies]
 chrono = { version = "0.4.19", features = ["serde"] }
 thiserror = "2.0"
-reqwest = { workspace = true }
+reqwest = { version = "0.11.13", features = ["json", "rustls-tls"], default-features = false }
 serde = { version = "1.0.126", features = ["derive"] }
 url = { version = "2.2.2", features = ["serde"] }
 
