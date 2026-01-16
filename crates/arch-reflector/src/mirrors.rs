@@ -37,15 +37,15 @@ pub async fn get_mirror_status(
             elapsed.as_secs() > cache_timeout as u64
         })
         .unwrap_or(true);
-    if !is_invalid {
-        let loaded = serde_json::from_reader(File::open(cache_file_path).unwrap())?;
-        Ok(loaded)
+    let loaded = if !is_invalid {
+        serde_json::from_reader(File::open(cache_file_path)?)?
     } else {
         let loaded = Status::get_from_url(url).await?;
-        let to_write = serde_json::to_string_pretty(&loaded).unwrap();
-        fs::write(cache_file_path, to_write).expect("Writing to file should not fail");
-        Ok(loaded)
-    }
+        let to_write = serde_json::to_string_pretty(&loaded)?;
+        fs::write(cache_file_path, to_write)?;
+        loaded
+    };
+    Ok(loaded)
 }
 
 #[derive(PartialEq, Eq, Hash)]
