@@ -3,7 +3,6 @@ use arch_mirrors_rs::{Mirror, Protocol, Status};
 use chrono::{DateTime, TimeDelta, Utc};
 use clap::{ArgAction, Args, Parser, ValueEnum, value_parser};
 use clap_verbosity_flag::Verbosity;
-use comfy_table::{Cell, CellAlignment, Table, modifiers::UTF8_ROUND_CORNERS, presets::UTF8_FULL};
 use reqwest::Url;
 use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
@@ -543,20 +542,39 @@ fn list_countries(status: &Status) {
     }
     sorted.sort_by(|c1, c2| c1.0.code.cmp(c2.0.code));
 
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .apply_modifier(UTF8_ROUND_CORNERS)
-        .set_header(vec!["Country", "Code", "Count"]);
+    let country_width = sorted
+        .iter()
+        .map(|(c, _)| c.country.len())
+        .max()
+        .unwrap_or(0)
+        .max("Country".len());
+    let code_width = sorted
+        .iter()
+        .map(|(c, _)| c.code.len())
+        .max()
+        .unwrap_or(0)
+        .max("Code".len());
+    let count_width = sorted
+        .iter()
+        .map(|(_, c)| c.ilog(10) as usize)
+        .max()
+        .unwrap_or(0)
+        .max("Count".len());
 
+    println!(
+        "{0:1$} {2:3$} {4:5$}",
+        "Country", country_width, "Code", code_width, "Count", count_width
+    );
+    println!(
+        "{0:1$} {2:3$} {4:5$}",
+        "=======", country_width, "====", code_width, "=====", count_width
+    );
     for (country, count) in sorted {
-        table.add_row(vec![
-            Cell::new(country.country.to_string()),
-            Cell::new(country.code.to_string()),
-            Cell::new(count.to_string()).set_alignment(CellAlignment::Right),
-        ]);
+        println!(
+            "{0:1$} {2:3$} {4:5$}",
+            country.country, country_width, country.code, code_width, count, count_width
+        );
     }
-    println!("{table}");
 }
 
 fn main() {
