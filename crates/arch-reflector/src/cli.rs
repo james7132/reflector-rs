@@ -83,7 +83,7 @@ pub struct RunOptions {
     /// probably apply more filters to reduce the number of rated servers before using this
     /// option.
     #[arg(long, default_value_t = 0)]
-    pub threads: u16,
+    pub threads: usize,
 
     /// Print mirror information instead of a mirror list. Filter options apply.
     #[arg(long, default_value_t = false)]

@@ -14,6 +14,8 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::process::Stdio;
 use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 
 struct Metadata<'a> {
@@ -119,6 +121,7 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
 
     let mut task_set = JoinSet::new();
     let mut rates = HashMap::with_capacity(status.urls.len());
+    let semaphore = Arc::new(Semaphore::new(run_options.threads.max(1)));
     let connection_timeout = run_options.connection_timeout;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(run_options.download_timeout))
@@ -127,10 +130,14 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
 
     for mirror in &status.urls {
         let url = mirror.url.clone();
+        let semaphore = semaphore.clone();
         match mirror.protocol {
             Protocol::Http | Protocol::Https => {
                 let task_client = client.clone();
                 task_set.spawn(async move {
+                    let Ok(_guard) = semaphore.acquire().await else {
+                        return (url, f64::NEG_INFINITY);
+                    };
                     let db_url = url.join(DB_SUBPATH).unwrap();
                     let start = Utc::now();
                     let response = task_client.get(db_url).send().await;
@@ -152,6 +159,9 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
             }
             Protocol::Rsync => {
                 task_set.spawn(async move {
+                    let Ok(_guard) = semaphore.acquire().await else {
+                        return (url, f64::NEG_INFINITY);
+                    };
                     let Ok(temp_dir) = tempdir::TempDir::new("reflector") else {
                         return (url, f64::NEG_INFINITY);
                     };
