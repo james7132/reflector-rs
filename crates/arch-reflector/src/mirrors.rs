@@ -8,7 +8,7 @@ use std::{
 };
 use xdg::BaseDirectories;
 
-pub fn get_cache_file(name: Option<&str>) -> PathBuf {
+pub(crate) fn get_cache_file(name: Option<&str>) -> PathBuf {
     let name = name.unwrap_or("mirrorstatus.json");
     let base_dirs = BaseDirectories::new();
     let cache_dir = base_dirs
@@ -32,33 +32,33 @@ pub async fn get_mirror_status(
         .metadata()
         .ok()
         .and_then(|meta| meta.modified().ok());
-    let is_invalid = mtime
-        .map(|time| {
-            let now = SystemTime::now();
-            let elapsed = now.duration_since(time).expect("Time went backwards");
-            elapsed.as_secs() > cache_timeout as u64
-        })
-        .unwrap_or(true);
-    let loaded = if !is_invalid {
-        serde_json::from_reader(File::open(cache_file_path)?)?
-    } else {
+    let is_invalid = mtime.is_none_or(|time| {
+        let now = SystemTime::now();
+        let elapsed = now.duration_since(time).expect("Time went backwards");
+        elapsed.as_secs() > u64::from(cache_timeout)
+    });
+    let loaded = if is_invalid {
         let loaded = reqwest::get(url).await?.json().await?;
         let to_write = serde_json::to_string_pretty(&loaded)?;
         fs::write(cache_file_path, to_write)?;
         loaded
+    } else {
+        serde_json::from_reader(File::open(cache_file_path)?)?
     };
     Ok(loaded)
 }
 
 #[derive(PartialEq, Eq, Hash)]
-pub struct Country<'a> {
+pub(crate) struct Country<'a> {
     pub country: &'a str,
     pub code: &'a str,
 }
 
-pub async fn count_countries(mirrors: &[Mirror]) -> HashMap<Country<'_>, usize> {
+pub(crate) fn count_countries<'a>(
+    mirrors: impl IntoIterator<Item = &'a Mirror>,
+) -> HashMap<Country<'a>, usize> {
     let mut counts = HashMap::new();
-    for mirror in mirrors.iter() {
+    for mirror in mirrors {
         if mirror.country_code.is_empty() {
             continue;
         }

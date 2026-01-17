@@ -16,5 +16,8 @@ thiserror = "2.0"
 serde = { version = "1.0.126", features = ["derive"] }
 url = { version = "2.2.2", features = ["serde"] }
 
+[lints]
+workspace = true
+
 [dev-dependencies]
 tokio = { version = "1.6.0", features = ["macros", "rt-multi-thread"] }

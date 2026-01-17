@@ -5,6 +5,12 @@ members = [
 ]
 resolver = "2"
 
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+pedantic = "warn"
+
 [profile.release]
 strip = true
 lto = true

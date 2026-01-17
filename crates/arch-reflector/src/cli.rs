@@ -1,3 +1,8 @@
+#![allow(
+    clippy::doc_markdown,
+    reason = "This is used to generate the user facing help."
+)]
+
 use arch_mirrors_rs::Protocol;
 use clap::{ArgAction, Args, Parser, ValueEnum, value_parser};
 use clap_verbosity_flag::Verbosity;

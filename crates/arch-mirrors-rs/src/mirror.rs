@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 
 /// An Arch Linux mirror and its statistics.
 #[derive(Debug, Clone, PartialOrd, PartialEq, Serialize, Deserialize)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Mirror {
     /// The url of the mirror.
     pub url: url::Url,
@@ -13,16 +14,22 @@ pub struct Mirror {
     /// The last time it synced from Arch Linux server.
     pub last_sync: Option<chrono::DateTime<chrono::Utc>>,
 
-    /// Completion PCT. Unknown what this means.
+    /// The number of mirror checks that have successfully connected and disconnected from the
+    /// given URL. If this is below 100%, the mirror may be unreliable.
     pub completion_pct: Option<f64>,
 
-    /// The average delay in seconds.
+    /// The calculated average mirroring delay; e.g. the mean value of `last check − last sync` for
+    /// each check of this mirror URL. Due to the timing of mirror checks, any value under one hour
+    /// should be viewed as ideal.
     pub delay: Option<u32>,
 
-    /// The average duration. Unknown what this means.
+    /// The average (mean) time it took to connect and retrieve the `lastsync` file from the given
+    /// URL. Note that this connection time is from the location of the Arch server; your geography
+    /// may product different results.
     pub duration_average: Option<f64>,
 
-    /// Duration StdDev. Unknown what this means.
+    /// The standard deviation of the connect and retrieval time. A high standard deviation can
+    /// indicate an unstable or overloaded mirror.
     pub duration_stddev: Option<f64>,
 
     /// The score of the mirror. This is currently calculated as `(hours delay + average duration + standard deviation) / completion percentage`.
