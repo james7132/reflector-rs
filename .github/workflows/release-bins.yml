@@ -35,7 +35,7 @@ jobs:
     outputs:
       TAG: ${{ steps.get-tag.outputs.TAG }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - uses: ./.github/actions/setup-dasel
@@ -55,7 +55,7 @@ jobs:
     if: github.repository_owner == 'IgnisDa'
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Install toolchain
@@ -95,7 +95,7 @@ jobs:
             os: 'windows-2019'
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v6
         with:
           persist-credentials: false
       - name: Install dependencies
