@@ -4,13 +4,9 @@ Parse the Arch Linux mirror status
 
 ## Description
 
-The `arch-mirrors-rs` crate allows you to parse the JSON different mirror status 
-sources (like https://www.archlinux.org/mirrors/status/json) into a typed, 
-rusty form. 
-
-## Examples
-
-For the examples see [examples](examples).
+The `arch-mirrors-rs` crate allows you to parse the JSON different mirror status
+sources (like https://www.archlinux.org/mirrors/status/json) into a typed,
+rusty form.
 
 ## Installation
 
