@@ -52,7 +52,6 @@ enum SortType {
     propagate_version = true,
     next_line_help = false,
     disable_help_subcommand = true,
-    after_long_help = "Retrieve and filter a list of the latest Arch Linux mirrors."
 )]
 struct Cli {
     /// The URL from which to retrieve the mirror data in JSON format. If different from
@@ -117,9 +116,7 @@ struct RunOptions {
 
 #[derive(Parser, Debug)]
 #[command(
-    next_help_heading = "filters",
-    // FIXME: Display this after heading name, currently it is not displayed at all.
-    after_long_help = "The following filters are inclusive, i.e. the returned list will only contain mirrors for which all of the given conditions are met."
+    next_help_heading = "filters\n\nThe following filters are inclusive, i.e. the returned list will only contain mirrors for which all of the given conditions are met.\n",
 )]
 struct Filters {
     /// Only return mirrors that have synchronized in the last n hours. n may be an integer
