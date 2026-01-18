@@ -339,7 +339,7 @@ async fn run(options: &Cli) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn format_output<'a>(metadata: &Metadata, status: &Status, mut out: impl Write) -> io::Result<()> {
+fn format_output(metadata: &Metadata, status: &Status, mut out: impl Write) -> io::Result<()> {
     let command = std::env::args().collect::<Vec<_>>().join(" ");
     let retrieved = Timestamp::try_from(metadata.retrieved).unwrap_or(metadata.when);
     writeln!(
