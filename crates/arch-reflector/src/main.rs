@@ -2,6 +2,7 @@ use anyhow::Result;
 use arch_mirrors_rs::{Mirror, Protocol, Status};
 use clap::{ArgAction, Args, Parser, ValueEnum, value_parser};
 use clap_verbosity_flag::Verbosity;
+use futures_util::StreamExt;
 use jiff::{Span, Timestamp};
 use reqwest::Url;
 use std::cmp::{Ordering, Reverse};
@@ -415,7 +416,11 @@ async fn rate_status(
                     let _guard = semaphore.acquire().await?;
                     let db_url = url.join(DB_SUBPATH)?;
                     let start = Instant::now();
-                    let content_length = task_client.get(db_url).send().await?.bytes().await?.len();
+                    let mut content_length = 0;
+                    let mut stream = task_client.get(db_url).send().await?.bytes_stream();
+                    while let Some(chunk) = stream.next().await {
+                        content_length += chunk?.len();
+                    }
                     let micros = Instant::elapsed(&start).as_secs_f64();
                     let rate = (content_length as f64) / micros;
                     Ok((url, rate))
