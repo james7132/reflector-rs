@@ -219,7 +219,9 @@ async fn get_mirror_status(
     cache_file_path: Option<PathBuf>,
 ) -> Result<Status> {
     if let Some(cache_file_path) = cache_file_path {
-        let mtime = cache_file_path.metadata().ok()
+        let mtime = cache_file_path
+            .metadata()
+            .ok()
             .and_then(|meta| meta.modified().ok());
         let is_invalid = mtime.is_none_or(|time| {
             let now = SystemTime::now();
@@ -361,6 +363,7 @@ async fn sort_status(run_options: &RunOptions, http_client: &reqwest::Client, st
     }
 }
 
+#[allow(clippy::cast_precision_loss)]
 async fn rate_status(
     run_options: &RunOptions,
     http_client: &reqwest::Client,
@@ -568,7 +571,7 @@ fn main() {
         Err(err) => {
             eprintln!("error: {err}");
             return;
-        },
+        }
     };
 
     if let Err(err) = result {

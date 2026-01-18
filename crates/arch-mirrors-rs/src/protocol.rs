@@ -1,7 +1,7 @@
 //! This is where the [`Protocol`](Protocol) structs and its dependencies go.
 use serde::{Deserialize, Serialize};
-use std::str::FromStr;
 use std::fmt::Formatter;
+use std::str::FromStr;
 
 /// The possible errors that could happen when working with [`Protocol`](Protocol).
 #[derive(Debug)]
@@ -25,7 +25,7 @@ impl std::error::Error for Error {
         None
     }
 
-    fn description(&self) -> &str {
+    fn description(&self) -> &'static str {
         ""
     }
 
