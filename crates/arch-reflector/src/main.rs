@@ -21,12 +21,12 @@ const DEFAULT_CONNECTION_TIMEOUT: u64 = 5;
 const DEFAULT_DOWNLOAD_TIMEOUT: u64 = 5;
 const DEFAULT_CACHE_TIMEOUT: u64 = 300;
 
-#[derive(Debug, ValueEnum, Clone, Copy)]
+#[derive(Debug, ValueEnum, Clone, Copy, PartialEq)]
 #[allow(
     clippy::doc_markdown,
     reason = "This is used to generate the user facing help."
 )]
-enum SortTypes {
+enum SortType {
     /// last server synchronization
     Age,
     /// download rate Rate,
@@ -96,7 +96,7 @@ struct RunOptions {
 
     /// Sort the mirrorlist by the given field.
     #[arg(long)]
-    sort: Option<SortTypes>,
+    sort: Option<SortType>,
 
     /// Use n threads for rating mirrors. This option will speed up the rating step but the
     /// results will be inaccurate if the local bandwidth is saturated at any point during
@@ -154,7 +154,7 @@ struct Filters {
     /// Return the n fastest mirrors that meet the other criteria. Do not use this option
     /// without other filtering options.
     #[arg(long, short, value_name = "n")]
-    fastest: Option<u16>,
+    fastest: Option<usize>,
 
     /// Include servers that match <regex>, where <regex> is a Rust regular express.
     #[arg(long, short, value_name = "regex", action = ArgAction::Append)]
@@ -166,15 +166,15 @@ struct Filters {
 
     /// Limit the list to the n most recently synchronized servers.
     #[arg(long, short, value_name = "n")]
-    latest: Option<u16>,
+    latest: Option<usize>,
 
     /// Limit the list to the n servers with the highest score.
     #[arg(long, value_name = "n")]
-    score: Option<u16>,
+    score: Option<usize>,
 
     /// Return at most n mirrors.
     #[arg(long, short, value_name = "n")]
-    number: Option<u16>,
+    number: Option<usize>,
 
     /// Match one of the given protocols, e.g. "https" or "ftp". Multiple protocols may be
     /// selected using commas (e.g. "https,http") or by passing this option multiple times.
@@ -292,7 +292,37 @@ async fn run(options: &Cli) -> anyhow::Result<()> {
     }
 
     filter_status(&options.run.filters, &mut status);
-    sort_status(&options.run, &http_client, &mut status).await;
+
+    if let Some(n) = options.run.filters.latest
+        && n > 0
+    {
+        sort_status(SortType::Age, &options.run, &http_client, &mut status).await;
+        status.urls.truncate(n);
+    }
+
+    if let Some(n) = options.run.filters.score
+        && n > 0
+    {
+        sort_status(SortType::Score, &options.run, &http_client, &mut status).await;
+        status.urls.truncate(n);
+    }
+
+    if let Some(n) = options.run.filters.fastest
+        && n > 0
+    {
+        if n > 0 {
+            sort_status(SortType::Rate, &options.run, &http_client, &mut status).await;
+            status.urls.truncate(n);
+        }
+    } else if let Some(sort_type) = options.run.sort
+        && sort_type != SortType::Rate
+    {
+        sort_status(sort_type, &options.run, &http_client, &mut status).await;
+    }
+
+    if let Some(n) = options.run.filters.number {
+        status.urls.truncate(n);
+    }
 
     let metadata = Metadata {
         when,
@@ -334,10 +364,15 @@ fn format_output<'a>(
     Ok(())
 }
 
-async fn sort_status(run_options: &RunOptions, http_client: &reqwest::Client, status: &mut Status) {
-    match run_options.sort {
-        Some(SortTypes::Age) => status.urls.sort_by_key(|mir| mir.last_sync),
-        Some(SortTypes::Rate) => {
+async fn sort_status(
+    sort_type: SortType,
+    run_options: &RunOptions,
+    http_client: &reqwest::Client,
+    status: &mut Status,
+) {
+    match sort_type {
+        SortType::Age => status.urls.sort_by_key(|mir| mir.last_sync),
+        SortType::Rate => {
             let rates = rate_status(run_options, http_client, status).await;
             status
                 .urls
@@ -351,15 +386,14 @@ async fn sort_status(run_options: &RunOptions, http_client: &reqwest::Client, st
                     (None, None) => Ordering::Equal,
                 });
         }
-        Some(SortTypes::Country) => status.urls.sort_by(|a, b| a.country.cmp(&b.country)),
-        Some(SortTypes::Score) => status.urls.sort_by(|a, b| {
+        SortType::Country => status.urls.sort_by(|a, b| a.country.cmp(&b.country)),
+        SortType::Score => status.urls.sort_by(|a, b| {
             a.score
                 .partial_cmp(&b.score)
                 .unwrap_or(Ordering::Equal)
                 .reverse()
         }),
-        Some(SortTypes::Delay) => status.urls.sort_by_key(|mir| Reverse(mir.delay)),
-        None => {}
+        SortType::Delay => status.urls.sort_by_key(|mir| Reverse(mir.delay)),
     }
 }
 
