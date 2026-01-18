@@ -1,8 +1,8 @@
 use anyhow::Result;
 use arch_mirrors_rs::{Mirror, Protocol, Status};
-use chrono::{DateTime, TimeDelta, Utc};
 use clap::{ArgAction, Args, Parser, ValueEnum, value_parser};
 use clap_verbosity_flag::Verbosity;
+use jiff::{Span, Timestamp};
 use reqwest::Url;
 use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
@@ -11,11 +11,10 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, Instant, SystemTime};
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
 use xdg::BaseDirectories;
-
 const URL: &str = "https://archlinux.org/mirrors/status/json/";
 const DEFAULT_CONNECTION_TIMEOUT: u16 = 5;
 const DEFAULT_DOWNLOAD_TIMEOUT: u64 = 5;
@@ -265,15 +264,15 @@ fn count_countries<'a>(
 }
 
 struct Metadata<'a> {
-    when: DateTime<Utc>,
+    when: Timestamp,
     origin: &'a str,
-    retrieved: DateTime<Utc>,
-    last_check: DateTime<Utc>,
+    retrieved: Timestamp,
+    last_check: Timestamp,
 }
 
 async fn run(options: &Cli) {
     let cache_file = get_cache_file(None);
-    let when = Utc::now();
+    let when = Timestamp::now();
     let mut status = match get_mirror_status(10, 10, &options.url, &cache_file).await {
         Ok(status) => status,
         Err(err) => {
@@ -333,7 +332,7 @@ fn format_output<'a>(
 
 async fn sort_status(run_options: &RunOptions, status: &mut Status) {
     match run_options.sort {
-        Some(SortTypes::Age) => status.urls.sort_by_key(|mir| mir.last_sync),
+        Some(SortTypes::Age) => status.urls.sort_by_key(|mir| mir.last_sync.clone()),
         Some(SortTypes::Rate) => {
             let rates = rate_status(run_options, status).await;
             status
@@ -384,7 +383,7 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
                         return (url, f64::NEG_INFINITY);
                     };
                     let db_url = url.join(DB_SUBPATH).unwrap();
-                    let start = Utc::now();
+                    let start = Instant::now();
                     let response = task_client.get(db_url).send().await;
 
                     let body = match response {
@@ -397,7 +396,7 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
                         Err(_) => return (url, f64::NEG_INFINITY),
                     };
 
-                    let micros = (Utc::now() - start).as_seconds_f64();
+                    let micros = (Instant::now() - start).as_secs_f64();
                     let rate = (content_length as f64) / micros;
                     (url, rate)
                 });
@@ -413,7 +412,7 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
 
                     let db_url = url.join(DB_SUBPATH).unwrap();
 
-                    let start = Utc::now();
+                    let start = Instant::now();
                     let command = tokio::process::Command::new("rsync")
                         .arg("-avL")
                         .arg("--no-h")
@@ -435,7 +434,7 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
                         _ => return (url, f64::NEG_INFINITY),
                     };
 
-                    let micros = (Utc::now() - start).as_seconds_f64();
+                    let micros = (Instant::now() - start).as_secs_f64();
                     let file_path = Path::join(temp_dir.path(), DB_FILENAME);
 
                     let content_length = match std::fs::metadata(file_path) {
@@ -465,16 +464,19 @@ async fn rate_status(run_options: &RunOptions, status: &Status) -> HashMap<Url, 
 #[allow(clippy::cast_sign_loss)]
 #[allow(clippy::cast_possible_truncation)]
 fn filter_status(filters: &Filters, status: &mut Status) {
-    let now = Utc::now();
+    let now = Timestamp::now();
     let min_completion_pct = f64::from(filters.completion_percent) / 100.0;
+    let max_age = filters
+        .age
+        .and_then(|age| Span::new().try_hours(age as i64).ok());
     status.urls.retain(move |mirror| {
         if let Some(last_sync) = mirror.last_sync {
             // Filter by age. The age is given in hours and converted to seconds. Servers
             // with a last refresh older than the age are omitted.
-            if let Some(age) = filters.age {
-                let max_age =
-                    TimeDelta::new((age * 3600.0) as i64, 0).expect("invalid age parameter");
-                if age > 0.0 && last_sync + max_age < now {
+            if let Some(max_age) = max_age {
+                if matches!(max_age.compare(Span::new()), Ok(Ordering::Greater))
+                    && last_sync + max_age < now
+                {
                     return false;
                 }
             }

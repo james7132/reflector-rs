@@ -8,7 +8,7 @@ pub struct Status {
     pub cutoff: u32,
 
     /// The last time every listed Arch Linux mirror polled the [`lastsync`] file.
-    pub last_check: chrono::DateTime<chrono::Utc>,
+    pub last_check: jiff::Timestamp,
 
     /// The number of checks that have been run in the last 24 hours.
     pub num_checks: u32,

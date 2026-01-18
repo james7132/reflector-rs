@@ -16,7 +16,7 @@ path = "src/main.rs"
 [dependencies]
 anyhow = "1.0.68"
 arch-mirrors-rs = { path = "../arch-mirrors-rs", version = "0.1.1" }
-chrono = { version = "0.4", features = ["serde"] }
+jiff = "0.2"
 clap = { version = "4.0", features = ["derive"] }
 clap-verbosity-flag = "2.0"
 xdg = "3.0"

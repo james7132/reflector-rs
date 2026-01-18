@@ -12,7 +12,7 @@ pub struct Mirror {
     pub protocol: crate::Protocol,
 
     /// The last time it synced from Arch Linux server.
-    pub last_sync: Option<chrono::DateTime<chrono::Utc>>,
+    pub last_sync: Option<jiff::Timestamp>,
 
     /// The number of mirror checks that have successfully connected and disconnected from the
     /// given URL. If this is below 100%, the mirror may be unreliable.
