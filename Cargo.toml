@@ -10,6 +10,8 @@ unsafe_code = "forbid"
 
 [workspace.lints.clippy]
 pedantic = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
 
 [profile.release]
 strip = true

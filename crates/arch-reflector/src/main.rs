@@ -199,14 +199,14 @@ struct Filters {
     ipv6: bool,
 }
 
-fn get_cache_file(name: Option<&str>) -> PathBuf {
+fn get_cache_file(name: Option<&str>) -> io::Result<PathBuf> {
     let name = name.unwrap_or("mirrorstatus.json");
     let base_dirs = BaseDirectories::new();
     let cache_dir = base_dirs
         .get_cache_home()
         .unwrap_or_else(|| PathBuf::from("~/.cache"));
-    fs::create_dir_all(&cache_dir).expect("creating directory should not fail");
-    cache_dir.join(name)
+    fs::create_dir_all(&cache_dir)?;
+    Ok(cache_dir.join(name))
 }
 
 /// Retrieve the mirror status JSON object. The downloaded data will be cached locally and
@@ -216,26 +216,30 @@ async fn get_mirror_status(
     http_client: &reqwest::Client,
     run_options: &RunOptions,
     url: &str,
-    cache_file_path: &Path,
+    cache_file_path: Option<PathBuf>,
 ) -> Result<Status> {
-    let mtime = cache_file_path
-        .metadata()
-        .ok()
-        .and_then(|meta| meta.modified().ok());
-    let is_invalid = mtime.is_none_or(|time| {
-        let now = SystemTime::now();
-        let elapsed = now.duration_since(time).expect("Time went backwards");
-        elapsed.as_secs() > u64::from(run_options.cache_timeout)
-    });
-    let loaded = if is_invalid {
-        let loaded = http_client.get(url).send().await?.json().await?;
-        let to_write = serde_json::to_string_pretty(&loaded)?;
-        fs::write(cache_file_path, to_write)?;
-        loaded
+    if let Some(cache_file_path) = cache_file_path {
+        let mtime = cache_file_path.metadata().ok()
+            .and_then(|meta| meta.modified().ok());
+        let is_invalid = mtime.is_none_or(|time| {
+            let now = SystemTime::now();
+            match now.duration_since(time) {
+                Ok(elapsed) => elapsed.as_secs() > run_options.cache_timeout,
+                Err(_) => true,
+            }
+        });
+        let loaded = if is_invalid {
+            let loaded = http_client.get(url).send().await?.json().await?;
+            let to_write = serde_json::to_string_pretty(&loaded)?;
+            fs::write(cache_file_path, to_write)?;
+            loaded
+        } else {
+            serde_json::from_reader(File::open(cache_file_path)?)?
+        };
+        Ok(loaded)
     } else {
-        serde_json::from_reader(File::open(cache_file_path)?)?
-    };
-    Ok(loaded)
+        Ok(http_client.get(url).send().await?.json().await?)
+    }
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -275,10 +279,10 @@ async fn run(options: &Cli) -> anyhow::Result<()> {
         .timeout(Duration::from_secs(options.run.download_timeout))
         .connect_timeout(Duration::from_secs(options.run.connection_timeout))
         .build()?;
-    let cache_file = get_cache_file(None);
+    let cache_file = get_cache_file(None).ok();
     let when = Timestamp::now();
     let mut status =
-        get_mirror_status(&http_client, &options.run, &options.url, &cache_file).await?;
+        get_mirror_status(&http_client, &options.run, &options.url, cache_file).await?;
 
     if options.list_countries {
         list_countries(&status);
@@ -330,7 +334,7 @@ fn format_output<'a>(
 
 async fn sort_status(run_options: &RunOptions, http_client: &reqwest::Client, status: &mut Status) {
     match run_options.sort {
-        Some(SortTypes::Age) => status.urls.sort_by_key(|mir| mir.last_sync.clone()),
+        Some(SortTypes::Age) => status.urls.sort_by_key(|mir| mir.last_sync),
         Some(SortTypes::Rate) => {
             let rates = rate_status(run_options, http_client, status).await;
             status
@@ -381,7 +385,7 @@ async fn rate_status(
                     let db_url = url.join(DB_SUBPATH)?;
                     let start = Instant::now();
                     let content_length = task_client.get(db_url).send().await?.bytes().await?.len();
-                    let micros = (Instant::now() - start).as_secs_f64();
+                    let micros = Instant::elapsed(&start).as_secs_f64();
                     let rate = (content_length as f64) / micros;
                     Ok((url, rate))
                 });
@@ -410,7 +414,7 @@ async fn rate_status(
                         return Err(anyhow::anyhow!(exit_status));
                     }
 
-                    let micros = (Instant::now() - start).as_secs_f64();
+                    let micros = Instant::elapsed(&start).as_secs_f64();
                     let file_path = Path::join(temp_dir.path(), DB_FILENAME);
                     let content_length = std::fs::metadata(file_path)?.len();
 
@@ -554,12 +558,18 @@ fn list_countries(status: &Status) {
 
 fn main() {
     let cli = Cli::parse();
-    let result = tokio::runtime::Builder::new_multi_thread()
+    let maybe_runtime = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .worker_threads(cli.run.threads.max(1))
-        .build()
-        .unwrap()
-        .block_on(run(&cli));
+        .build();
+
+    let result = match maybe_runtime {
+        Ok(runtime) => runtime.block_on(run(&cli)),
+        Err(err) => {
+            eprintln!("error: {err}");
+            return;
+        },
+    };
 
     if let Err(err) = result {
         eprintln!("error: {err}");
