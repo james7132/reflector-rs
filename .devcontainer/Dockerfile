@@ -1,1 +1,0 @@
-FROM ignisda/archlinux:latest
