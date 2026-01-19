@@ -34,8 +34,7 @@ impl std::error::Error for Error {
     }
 }
 
-/// This contains every supported protocol by Arch Linux mirror status as of the time of writing
-/// (05/20/2021).
+/// This contains every supported protocol by Arch Linux mirror status.
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum Protocol {
     /// The HTTP protocol.
@@ -61,5 +60,15 @@ impl FromStr for Protocol {
             "rsync" => Ok(Self::Rsync),
             other => Err(Error::InvalidProtocol(other.into())),
         }
+    }
+}
+
+impl std::fmt::Display for Protocol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        Ok(match self {
+            Self::Http => write!(f, "http")?,
+            Self::Https => write!(f, "https")?,
+            Self::Rsync => write!(f, "rsync")?,
+        })
     }
 }

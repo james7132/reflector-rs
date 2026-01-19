@@ -51,7 +51,7 @@ enum SortType {
     version,
     propagate_version = true,
     next_line_help = false,
-    disable_help_subcommand = true,
+    disable_help_subcommand = true
 )]
 struct Cli {
     /// The URL from which to retrieve the mirror data in JSON format. If different from
@@ -116,7 +116,7 @@ struct RunOptions {
 
 #[derive(Parser, Debug)]
 #[command(
-    next_help_heading = "filters\n\nThe following filters are inclusive, i.e. the returned list will only contain mirrors for which all of the given conditions are met.\n",
+    next_help_heading = "filters\n\nThe following filters are inclusive, i.e. the returned list will only contain mirrors for which all of the given conditions are met.\n"
 )]
 struct Filters {
     /// Only return mirrors that have synchronized in the last n hours. n may be an integer
@@ -327,12 +327,59 @@ async fn run(options: &Cli) -> anyhow::Result<()> {
         retrieved: mtime,
     };
 
-    if let Some(path) = &options.run.save {
-        File::create(path).and_then(move |file| format_output(&metadata, &status, file))?;
-    } else {
-        format_output(&metadata, &status, io::stdout())?;
+    match (options.run.info, options.run.save.as_ref()) {
+        (true, Some(path)) => {
+            File::create(path).and_then(move |file| print_mirror_info(&status, file))?;
+        }
+        (false, Some(path)) => {
+            File::create(path).and_then(move |file| format_output(&metadata, &status, file))?;
+        }
+        (true, None) => {
+            print_mirror_info(&status, io::stdout())?;
+        }
+        (false, None) => {
+            format_output(&metadata, &status, io::stdout())?;
+        }
     }
 
+    Ok(())
+}
+
+fn print_mirror_info(status: &Status, mut out: impl Write) -> io::Result<()> {
+    const WIDTH: usize = 16;
+    fn write_optional<T: std::fmt::Display>(
+        out: &mut impl Write,
+        name: &str,
+        value: &Option<T>,
+    ) -> io::Result<()> {
+        if let Some(value) = value.as_ref() {
+            writeln!(out, "{0:1$}: {2}", name, WIDTH, value)
+        } else {
+            writeln!(out, "{0:1$}: {2}", name, WIDTH, "None")
+        }
+    }
+    for mirror in &status.urls {
+        writeln!(out, "{}$repo/os/$arch", mirror.url)?;
+        writeln!(out, "{0:1$}: {2}", "active", WIDTH, mirror.active)?;
+        write_optional(&mut out, "completion_pct", &mirror.completion_pct)?;
+        writeln!(out, "{0:1$}: {2}", "country", WIDTH, mirror.country)?;
+        writeln!(
+            out,
+            "{0:1$}: {2}",
+            "country_code", WIDTH, mirror.country_code
+        )?;
+        write_optional(&mut out, "delay", &mirror.delay)?;
+        writeln!(out, "{0:1$}: {2}", "details", WIDTH, mirror.details)?;
+        write_optional(&mut out, "duration_average", &mirror.duration_average)?;
+        write_optional(&mut out, "duration_stddev", &mirror.duration_stddev)?;
+        writeln!(out, "{0:1$}: {2}", "ipv4", WIDTH, mirror.ipv4)?;
+        writeln!(out, "{0:1$}: {2}", "ipv4", WIDTH, mirror.ipv6)?;
+        writeln!(out, "{0:1$}: {2}", "isos", WIDTH, mirror.isos)?;
+        write_optional(&mut out, "last_sync", &mirror.last_sync)?;
+        writeln!(out, "{0:1$}: {2}", "protocol", WIDTH, mirror.protocol)?;
+        write_optional(&mut out, "score", &mirror.score)?;
+        writeln!(out)?;
+    }
     Ok(())
 }
 
