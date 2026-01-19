@@ -1,0 +1,89 @@
+.ie "\f[CB]x\f[]"x" \{\
+. ftr V B
+. ftr VI BI
+. ftr VB B
+. ftr VBI BI
+.\}
+.el \{\
+. ftr V CR
+. ftr VI CI
+. ftr VB CB
+. ftr VBI CBI
+.\}
+.TH "REFLECTOR" "1" "2020-08-19" "reflector User Manual" ""
+.hy
+.SH NAME
+.PP
+reflector - retrieve and filter the latest Pacman mirrorlist
+.SH SYNOPSIS
+.PP
+\f[V]reflector [arguments]\f[R]
+.SH DESCRIPTION
+.PP
+reflector is a Python script and associated Python module that can
+retrieve up-to-date Arch Linux mirror data from the Mirror
+Status (https://www.archlinux.org/mirrors/status/) web interface.
+.SH ARGUMENTS
+.PP
+See \f[V]reflector --help\f[R].
+.SH EXAMPLES
+.PP
+Print the latest mirrorlist to STDOUT:
+.IP
+.nf
+\f[C]
+reflector
+\f[R]
+.fi
+.PP
+Sort the five most recently synchronized mirrors by download speed and
+overwrite the local mirrorlist:
+.IP
+.nf
+\f[C]
+reflector --latest 5 --sort rate --save /etc/pacman.d/mirrorlist
+\f[R]
+.fi
+.PP
+Select the 200 most recently synchronized HTTP or HTTPS mirrors, sort
+them by download speed, and overwrite the file /etc/pacman.d/mirrorlist:
+.IP
+.nf
+\f[C]
+reflector --latest 200 --protocol http,https --sort rate --save /etc/pacman.d/mirrorlist
+\f[R]
+.fi
+.PP
+Select the HTTPS mirrors synchronized within the last 12 hours and
+located in either France or Germany, sort them by download speed, and
+overwrite the file \f[V]/etc/pacman.d/mirrorlist\f[R] with the results:
+.IP
+.nf
+\f[C]
+reflector --country France,Germany --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+\f[R]
+.fi
+.SH SYSTEMD INTEGRATION
+.PP
+Reflector includes systemd service and timer units that can be used to
+automatically update Pacman\[cq]s mirrorlist.
+To use the timer, edit the configuration file at
+\f[V]/etc/xdg/reflector/reflector.conf\f[R] and then enable the timer
+with
+.IP
+.nf
+\f[C]
+systemctl enable reflector.timer
+systemctl start reflector.timer
+\f[R]
+.fi
+.PP
+Check that status with \f[V]systemctl list-timers\f[R].
+To update the mirrorlist immediately instead of waiting for the
+scheduled operation, run \f[V]systemctl start reflector.service\f[R].
+.SH SEE ALSO
+.PP
+\f[V]pacman(8)\f[R]
+.SH AUTHORS
+Xyne.
+james7132.

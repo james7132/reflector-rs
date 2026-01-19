@@ -1,64 +1,51 @@
 # Maintainer: James Liu <contact@no-bull.sh>
 
-pkgname=reflector
+pkgname=reflector-rs
 pkgver=0.1.0
 pkgrel=1
 pkgdesc='Retrieve and filter the latest Arch Linux mirror list (Rust implementation)'
 arch=('x86_64')
 url='https://github.com/james7132/reflector-rs'
 license=('GPL-2.0-or-later')
-depends=('gcc-libs')
-makedepends=('cargo' 'git')
+provides=('reflector')
+conflicts=('reflector')
+makedepends=('cargo' 'git' 'rust')
 backup=('etc/xdg/reflector/reflector.conf')
-source=(
-  "$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz"
-  'reflector.service'
-  'reflector.timer'
-  'reflector.conf'
-)
-sha256sums=('SKIP'
-            'SKIP'
-            'SKIP'
-            'SKIP')
+source=("git+$url.git")
+sha256sums=('SKIP')
 
 prepare() {
-  cd "$pkgname-$pkgver"
+  cd "$srcdir/reflector-rs"
   cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
 }
 
 build() {
-  cd "$pkgname-$pkgver"
-  export RUSTUP_TOOLCHAIN=stable
+  cd "$srcdir/reflector-rs"
+  export RUSTUP_TOOLCHAIN=1.85
   export CARGO_TARGET_DIR=target
   cargo build --frozen --release --target "$CARCH-unknown-linux-gnu"
 }
 
-check() {
-  cd "$pkgname-$pkgver"
-  export RUSTUP_TOOLCHAIN=stable
-  cargo test --frozen --target "$CARCH-unknown-linux-gnu"
-}
-
 package() {
-  cd "$pkgname-$pkgver"
+  cd "$srcdir/reflector-rs"
 
   # Install binary
-  install -Dm755 "target/$CARCH-unknown-linux-gnu/release/$pkgname" \
+  install -Dm755 "target/$CARCH-unknown-linux-gnu/release/reflector" \
     "$pkgdir/usr/bin/$pkgname"
 
   # Install systemd service and timer
-  install -Dm644 "$srcdir/reflector.service" \
+  install -Dm644 "dist/reflector.service" \
     "$pkgdir/usr/lib/systemd/system/reflector.service"
-  install -Dm644 "$srcdir/reflector.timer" \
+  install -Dm644 "dist/reflector.timer" \
     "$pkgdir/usr/lib/systemd/system/reflector.timer"
 
   # Install default configuration
-  install -Dm644 "$srcdir/reflector.conf" \
+  install -Dm644 "dist/reflector.conf" \
     "$pkgdir/etc/xdg/reflector/reflector.conf"
 
-  # Install man page (if you create one)
-  # install -Dm644 reflector.1 "$pkgdir/usr/share/man/man1/reflector.1"
+  # Install man page
+  install -Dm644 reflector.1 "usr/share/man/man1/reflector.1"
 
   # Install license
-  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 LICENSE "usr/share/licenses/$pkgname/LICENSE"
 }
