@@ -65,10 +65,11 @@ impl FromStr for Protocol {
 
 impl std::fmt::Display for Protocol {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
-        Ok(match self {
+        match self {
             Self::Http => write!(f, "http")?,
             Self::Https => write!(f, "https")?,
             Self::Rsync => write!(f, "rsync")?,
-        })
+        }
+        Ok(())
     }
 }

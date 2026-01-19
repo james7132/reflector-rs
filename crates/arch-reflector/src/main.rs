@@ -4,6 +4,7 @@ use clap::{ArgAction, Args, Parser, ValueEnum, value_parser};
 use clap_verbosity_flag::Verbosity;
 use futures_util::StreamExt;
 use jiff::{Span, Timestamp};
+use regex::Regex;
 use reqwest::Url;
 use std::cmp::{Ordering, Reverse};
 use std::collections::HashMap;
@@ -156,11 +157,11 @@ struct Filters {
 
     /// Include servers that match <regex>, where <regex> is a Rust regular express.
     #[arg(long, short, value_name = "regex", action = ArgAction::Append)]
-    include: Vec<String>,
+    include: Vec<Regex>,
 
     /// Exclude servers that match <regex>, where <regex> is a Rust regular expression.
     #[arg(long, short, value_name = "regex", action = ArgAction::Append)]
-    exclude: Vec<String>,
+    exclude: Vec<Regex>,
 
     /// Limit the list to the n most recently synchronized servers.
     #[arg(long, short, value_name = "n")]
@@ -350,34 +351,38 @@ fn print_mirror_info(status: &Status, mut out: impl Write) -> io::Result<()> {
     fn write_optional<T: std::fmt::Display>(
         out: &mut impl Write,
         name: &str,
-        value: &Option<T>,
+        value: Option<&T>,
     ) -> io::Result<()> {
         if let Some(value) = value.as_ref() {
-            writeln!(out, "{0:1$}: {2}", name, WIDTH, value)
+            writeln!(out, "{name:WIDTH$}: {value}")
         } else {
-            writeln!(out, "{0:1$}: {2}", name, WIDTH, "None")
+            writeln!(out, "{name:WIDTH$}: None")
         }
     }
     for mirror in &status.urls {
         writeln!(out, "{}$repo/os/$arch", mirror.url)?;
         writeln!(out, "{0:1$}: {2}", "active", WIDTH, mirror.active)?;
-        write_optional(&mut out, "completion_pct", &mirror.completion_pct)?;
+        write_optional(&mut out, "completion_pct", mirror.completion_pct.as_ref())?;
         writeln!(out, "{0:1$}: {2}", "country", WIDTH, mirror.country)?;
         writeln!(
             out,
             "{0:1$}: {2}",
             "country_code", WIDTH, mirror.country_code
         )?;
-        write_optional(&mut out, "delay", &mirror.delay)?;
+        write_optional(&mut out, "delay", mirror.delay.as_ref())?;
         writeln!(out, "{0:1$}: {2}", "details", WIDTH, mirror.details)?;
-        write_optional(&mut out, "duration_average", &mirror.duration_average)?;
-        write_optional(&mut out, "duration_stddev", &mirror.duration_stddev)?;
+        write_optional(
+            &mut out,
+            "duration_average",
+            mirror.duration_average.as_ref(),
+        )?;
+        write_optional(&mut out, "duration_stddev", mirror.duration_stddev.as_ref())?;
         writeln!(out, "{0:1$}: {2}", "ipv4", WIDTH, mirror.ipv4)?;
         writeln!(out, "{0:1$}: {2}", "ipv4", WIDTH, mirror.ipv6)?;
         writeln!(out, "{0:1$}: {2}", "isos", WIDTH, mirror.isos)?;
-        write_optional(&mut out, "last_sync", &mirror.last_sync)?;
+        write_optional(&mut out, "last_sync", mirror.last_sync.as_ref())?;
         writeln!(out, "{0:1$}: {2}", "protocol", WIDTH, mirror.protocol)?;
-        write_optional(&mut out, "score", &mirror.score)?;
+        write_optional(&mut out, "score", mirror.score.as_ref())?;
         writeln!(out)?;
     }
     Ok(())
@@ -558,6 +563,26 @@ fn filter_status(filters: &Filters, status: &mut Status) {
 
         // Filter by protocols.
         if !filters.protocol.is_empty() && !filters.protocol.contains(&mirror.protocol) {
+            return false;
+        }
+
+        // Filter by include expressions.
+        if !filters.include.is_empty()
+            && !filters
+                .include
+                .iter()
+                .any(|re| re.is_match(mirror.url.as_str()))
+        {
+            return false;
+        }
+
+        // Filter by include expressions.
+        if !filters.exclude.is_empty()
+            && filters
+                .exclude
+                .iter()
+                .any(|re| re.is_match(mirror.url.as_str()))
+        {
             return false;
         }
 
