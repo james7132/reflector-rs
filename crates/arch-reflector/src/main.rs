@@ -230,17 +230,16 @@ async fn get_mirror_status(
         .and_then(|mtime| SystemTime::now().duration_since(mtime).ok())
         .filter(|elapsed| elapsed.as_secs() <= run_options.cache_timeout)
         .is_some();
-    if let Some(mtime) = mtime
-        && is_valid
-    {
-        let loaded = serde_json::from_reader(File::open(cache_file_path)?)?;
-        Ok((loaded, mtime))
-    } else {
-        let loaded = http_client.get(url).send().await?.json().await?;
-        let to_write = serde_json::to_string_pretty(&loaded)?;
-        fs::write(cache_file_path, to_write)?;
-        Ok((loaded, SystemTime::now()))
+    if let Some(mtime) = mtime {
+        if is_valid {
+            let loaded = serde_json::from_reader(File::open(cache_file_path)?)?;
+            return Ok((loaded, mtime));
+        }
     }
+    let loaded = http_client.get(url).send().await?.json().await?;
+    let to_write = serde_json::to_string_pretty(&loaded)?;
+    fs::write(cache_file_path, to_write)?;
+    Ok((loaded, SystemTime::now()))
 }
 
 #[derive(PartialEq, Eq, Hash)]
@@ -291,31 +290,29 @@ async fn run(options: &Cli) -> anyhow::Result<()> {
 
     filter_status(&options.run.filters, &mut status);
 
-    if let Some(n) = options.run.filters.latest
-        && n > 0
-    {
-        sort_status(SortType::Age, &options.run, &http_client, &mut status).await;
-        status.urls.truncate(n);
+    if let Some(n) = options.run.filters.latest {
+        if n > 0 {
+            sort_status(SortType::Age, &options.run, &http_client, &mut status).await;
+            status.urls.truncate(n);
+        }
     }
 
-    if let Some(n) = options.run.filters.score
-        && n > 0
-    {
-        sort_status(SortType::Score, &options.run, &http_client, &mut status).await;
-        status.urls.truncate(n);
+    if let Some(n) = options.run.filters.score {
+        if n > 0 {
+            sort_status(SortType::Score, &options.run, &http_client, &mut status).await;
+            status.urls.truncate(n);
+        }
     }
 
-    if let Some(n) = options.run.filters.fastest
-        && n > 0
-    {
+    if let Some(n) = options.run.filters.fastest {
         if n > 0 {
             sort_status(SortType::Rate, &options.run, &http_client, &mut status).await;
             status.urls.truncate(n);
         }
-    } else if let Some(sort_type) = options.run.sort
-        && sort_type != SortType::Rate
-    {
-        sort_status(sort_type, &options.run, &http_client, &mut status).await;
+    } else if let Some(sort_type) = options.run.sort {
+        if sort_type != SortType::Rate {
+            sort_status(sort_type, &options.run, &http_client, &mut status).await;
+        }
     }
 
     if let Some(n) = options.run.filters.number {
