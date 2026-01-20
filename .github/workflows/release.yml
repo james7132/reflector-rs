@@ -19,7 +19,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Publish to crates.io
-        run: cargo publish --dry-run
+        run: cargo publish
 
   build-binaries:
     name: Build binary for ${{ matrix.target }}
