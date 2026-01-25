@@ -52,7 +52,7 @@ jobs:
           tar czf ../${{ github.event.repository.name }}-${{ github.ref_name }}-${{ matrix.target }}.tar.xz $(ls)
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binary-${{ matrix.target }}
           path: '*.tar.xz'
