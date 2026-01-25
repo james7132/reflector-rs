@@ -1,10 +1,8 @@
 on:
   push:
-    branch: "main"
   pull_request:
-  merge_group:
 
-name: CI
+name: Daily Tests
 
 env:
   CARGO_INCREMENTAL: 0
