@@ -1,6 +1,6 @@
 [package]
 name = "arch-reflector"
-version = "1.1.0"
+version = "1.1.1"
 description = "Retrieve and filter a list of the latest Arch Linux mirrors."
 edition = "2024"
 rust-version = "1.85"
