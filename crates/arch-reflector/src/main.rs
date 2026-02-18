@@ -555,7 +555,12 @@ fn filter_status(filters: &Filters, status: &mut Status) {
         if !filters.country.is_empty() {
             let country_matches = filters.country.iter().any(|c| {
                 let trimmed = c.trim();
-                trimmed == "*" || trimmed == mirror.country || trimmed == mirror.country_code
+                if trimmed == "*" {
+                    return true;
+                }
+                let trimmed_upper = trimmed.to_uppercase();
+                trimmed_upper == mirror.country.to_uppercase()
+                    || trimmed_upper == mirror.country_code.to_uppercase()
             });
             if !country_matches {
                 return false;
