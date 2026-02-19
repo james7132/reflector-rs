@@ -148,7 +148,7 @@ struct Filters {
     /// --latest 10", the latest 10 mirrors may all be from the United States. When the
     /// glob pattern is present, it only ensures that if certain countries are included in
     /// the results, they will be sorted in the requested order.
-    #[arg(long, short, value_name = "country name or code", action = ArgAction::Append)]
+    #[arg(long, short, value_name = "country name or code", value_delimiter=',', action = ArgAction::Append)]
     country: Vec<String>,
 
     /// Return the n fastest mirrors that meet the other criteria. Do not use this option
@@ -552,11 +552,19 @@ fn filter_status(filters: &Filters, status: &mut Status) {
             }
         }
 
-        if !filters.country.is_empty()
-            && !filters.country.contains(&mirror.country)
-            && !filters.country.contains(&mirror.country_code)
-        {
-            return false;
+        if !filters.country.is_empty() {
+            let country_matches = filters.country.iter().any(|c| {
+                let trimmed = c.trim();
+                if trimmed == "*" {
+                    return true;
+                }
+                // All country names are in English and all country codes are in ASCII.
+                trimmed.eq_ignore_ascii_case(mirror.country.as_str())
+                    || trimmed.eq_ignore_ascii_case(mirror.country_code.as_str())
+            });
+            if !country_matches {
+                return false;
+            }
         }
 
         // Filter by protocols.
