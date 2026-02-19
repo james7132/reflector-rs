@@ -560,7 +560,7 @@ fn filter_status(filters: &Filters, status: &mut Status) {
                 }
                 // All country names are in English and all country codes are in ASCII.
                 trimmed.eq_ignore_ascii_case(mirror.country.as_str())
-                    || trimmed..eq_ignore_ascii_case(mirror.country_code.as_str())
+                    || trimmed.eq_ignore_ascii_case(mirror.country_code.as_str())
             });
             if !country_matches {
                 return false;
