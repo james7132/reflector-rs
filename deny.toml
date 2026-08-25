@@ -22,7 +22,7 @@ exceptions = []
 multiple-versions = "deny"
 wildcards = "deny"
 skip = [
-  { name = "windows-sys", reason = "This binary does not target Windows" }
+  { name = "syn", reason = "Not a huge issue to have multiple macro crates other than compile time." }
 ]
 
 [sources]
