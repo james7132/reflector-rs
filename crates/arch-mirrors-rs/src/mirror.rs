@@ -21,11 +21,12 @@ pub struct Mirror {
     /// The calculated average mirroring delay; e.g. the mean value of `last check − last sync` for
     /// each check of this mirror URL. Due to the timing of mirror checks, any value under one hour
     /// should be viewed as ideal.
-    pub delay: Option<u32>,
+    pub delay: Option<i64>,
 
     /// The average (mean) time it took to connect and retrieve the `lastsync` file from the given
     /// URL. Note that this connection time is from the location of the Arch server; your geography
     /// may product different results.
+    #[serde(rename = "duration_avg", alias = "duration_average")]
     pub duration_average: Option<f64>,
 
     /// The standard deviation of the connect and retrieval time. A high standard deviation can
