@@ -18,7 +18,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        rust: [stable, nightly, 1.85.0]
+        rust: [stable, nightly, 1.99.0]
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
