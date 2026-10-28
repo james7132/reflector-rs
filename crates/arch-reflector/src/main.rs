@@ -229,8 +229,8 @@ async fn get_mirror_status(
         .and_then(|meta| meta.modified().ok());
     let is_valid = mtime
         .and_then(|mtime| SystemTime::now().duration_since(mtime).ok())
-        .filter(|elapsed| elapsed.as_secs() <= run_options.cache_timeout)
-        .is_some();
+        .as_ref()
+        .is_some_and(|elapsed| elapsed.as_secs() <= run_options.cache_timeout);
     if let Some(mtime) = mtime {
         if is_valid {
             let loaded = serde_json::from_reader(File::open(cache_file_path)?)?;
