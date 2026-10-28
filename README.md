@@ -189,5 +189,5 @@ immediately instead of waiting for the scheduled operation, run `systemctl start
 reflector.service`.
 
 ## Minimum Supported Rust Version
-All crates under this repository use a MSRV matched with the stable Debian
-release (currently 1.85).
+All crates under this repository use a MSRV matched with the latest release in
+Arch's repositories (currently 1.99).

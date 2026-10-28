@@ -229,8 +229,8 @@ async fn get_mirror_status(
         .and_then(|meta| meta.modified().ok());
     let is_valid = mtime
         .and_then(|mtime| SystemTime::now().duration_since(mtime).ok())
-        .filter(|elapsed| elapsed.as_secs() <= run_options.cache_timeout)
-        .is_some();
+        .as_ref()
+        .is_some_and(|elapsed| elapsed.as_secs() <= run_options.cache_timeout);
     if let Some(mtime) = mtime {
         if is_valid {
             let loaded = serde_json::from_reader(File::open(cache_file_path)?)?;
@@ -595,7 +595,7 @@ fn filter_status(filters: &Filters, status: &mut Status) {
         // Filter by delay. The delay is given as a float of hours and must be
         // converted to seconds.
         if let Some(delay) = filters.delay {
-            let max_delay = (delay * 3600.0) as u32;
+            let max_delay = (delay * 3600.0) as i64;
             if let Some(mirror_delay) = mirror.delay {
                 if mirror_delay > max_delay {
                     return false;
