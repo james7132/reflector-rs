@@ -14,6 +14,9 @@ allow = [
   "MIT",
   "Unicode-3.0",
   "Unlicense",
+  "BSD-3-Clause",
+  "ISC",
+  "CDLA-Permissive-2.0"
 ]
 
 exceptions = []
@@ -22,6 +25,7 @@ exceptions = []
 multiple-versions = "deny"
 wildcards = "deny"
 skip = [
+  { name = "windows-sys", reason = "This binary does not target Windows" },
   { name = "syn", reason = "Not a huge issue to have multiple macro crates other than compile time." }
 ]
 
